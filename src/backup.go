@@ -3,28 +3,35 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 )
 
-func backupData(archiveName string) {
+func backupData(archiveName string) (result error) {
+	archivePath, err := filepath.Abs(archiveName)
+	if err != nil {
+		return err
+	}
+
 	outFile, err := os.Create(archiveName)
 	if err != nil {
-		log.Fatalf("Failed to create archive: %v", err)
+		return fmt.Errorf("create archive: %w", err)
 	}
-	defer outFile.Close()
+	defer func() { result = errors.Join(result, outFile.Close()) }()
 
 	gzWriter := gzip.NewWriter(outFile)
-	defer gzWriter.Close()
+	defer func() { result = errors.Join(result, gzWriter.Close()) }()
 
 	tarWriter := tar.NewWriter(gzWriter)
-	defer tarWriter.Close()
+	defer func() { result = errors.Join(result, tarWriter.Close()) }()
 
 	root := "."
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(root, func(path string, info os.FileInfo, err error) (result error) {
 		if err != nil {
 			if os.IsPermission(err) {
 				return nil // skip files/dirs with no permission
@@ -32,9 +39,24 @@ func backupData(archiveName string) {
 			return err
 		}
 
-		// Skip the archive file itself
-		if info.Name() == archiveName {
+		pathAbs, err := filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+		if pathAbs == archivePath || (!info.IsDir() && strings.HasPrefix(info.Name(), "backup")) {
 			return nil
+		}
+
+		var file *os.File
+		if info.Mode().IsRegular() {
+			file, err = os.Open(path)
+			if err != nil {
+				if os.IsPermission(err) {
+					return nil // skip files with no permission
+				}
+				return err
+			}
+			defer func() { result = errors.Join(result, file.Close()) }()
 		}
 
 		hdr, err := tar.FileInfoHeader(info, path)
@@ -62,15 +84,10 @@ func backupData(archiveName string) {
 			return err
 		}
 
-		if info.Mode().IsRegular() {
-			file, err := os.Open(path)
-			if err != nil {
-				if os.IsPermission(err) {
-					return nil // skip files with no permission
-				}
-				return err
-			}
-			defer file.Close()
+		if info.IsDir() {
+			fmt.Printf("Backing up directory: %s\n", relPath)
+		}
+		if file != nil {
 			if _, err := io.Copy(tarWriter, file); err != nil {
 				return err
 			}
