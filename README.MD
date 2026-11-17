@@ -35,6 +35,8 @@ Then, you are ready to start the infra! With `infra up`.
 
 You can do a full cold backup by running `sudo infra backup`. The backup will keep file 
 permission, for the bind mounts. The archive file name is in the `infra.json` config file.
+Progress is displayed once per directory. Files whose names start with `backup` are
+excluded at every level; directories with that prefix are still included.
 
 To restore, just extract the archive somewhere else (as root) and up it!
 
