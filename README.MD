@@ -45,8 +45,9 @@ preserved, and failed downloads leave the existing installation untouched.
 
 ## Backup
 
-You can do a full cold backup by running `sudo infra backup`. The backup will keep file 
-permission, for the bind mounts. The archive file name is configured with `archive_name` in `infra.json`. You can
+You can do a full cold backup by running `infra backup`; the command will request
+root access through `sudo` when needed. The backup will keep file permission for
+the bind mounts. The archive file name is configured with `archive_name` in `infra.json`. You can
 also configure an `exclude` array of glob patterns, for example:
 
 ```json
