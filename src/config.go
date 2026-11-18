@@ -9,7 +9,8 @@ import (
 
 // Config structure for infra.json
 type Config struct {
-	ArchiveName string `json:"archive_name"`
+	ArchiveName string   `json:"archive_name"`
+	Exclude     []string `json:"exclude,omitempty"`
 }
 
 func ensureConfig(path string) (Config, error) {

@@ -46,9 +46,21 @@ preserved, and failed downloads leave the existing installation untouched.
 ## Backup
 
 You can do a full cold backup by running `sudo infra backup`. The backup will keep file 
-permission, for the bind mounts. The archive file name is in the `infra.json` config file.
-Progress is displayed once per directory. Files whose names start with `backup` are
-excluded at every level; directories with that prefix are still included.
+permission, for the bind mounts. The archive file name is configured with `archive_name` in `infra.json`. You can
+also configure an `exclude` array of glob patterns, for example:
+
+```json
+{
+  "archive_name": "backup.tar.gz",
+  "exclude": ["*.zip", "Cache/"]
+}
+```
+
+Patterns without a `/` match path components at any depth; patterns with a `/`
+match the path relative to the infrastructure directory. A trailing `/` limits
+a pattern to directories, which are skipped along with their contents. The
+archive itself is always excluded. Progress is displayed once per included
+directory.
 
 To restore, just extract the archive somewhere else (as root) and up it!
 
