@@ -64,7 +64,9 @@ Patterns without a `/` match path components at any depth; patterns with a `/`
 match the path relative to the infrastructure directory. A trailing `/` limits
 a pattern to directories, which are skipped along with their contents. The
 archive itself is always excluded. Backup progress prints one dot for each
-included directory containing `docker-compose.yml` or `compose.yml`.
+included directory containing `docker-compose.yml` or `compose.yml`, all on one
+line (`.....` for five matching directories). Routine Docker output is hidden
+during backup, but errors are still shown.
 
 To restore, just extract the archive somewhere else (as root) and up it!
 

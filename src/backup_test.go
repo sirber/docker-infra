@@ -15,7 +15,7 @@ import (
 
 func TestBackupData(t *testing.T) {
 	root := t.TempDir()
-	for _, dir := range []string{"archives", "service/nested", "backup-folder", "service/Cache/subdir"} {
+	for _, dir := range []string{"archives", "service/nested", "backup-folder", "service/Cache/subdir", "web", "worker"} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0755); err != nil {
 			t.Fatal(err)
 		}
@@ -25,6 +25,7 @@ func TestBackupData(t *testing.T) {
 		"keep.txt":                      "root",
 		"backup-old.tar.gz":             "old backup",
 		"service/docker-compose.yml":    "service compose",
+		"service/compose.yml":           "second compose filename in same directory",
 		"service/backup-data":           "previously excluded",
 		"service/nested/compose.yml":    "nested compose",
 		"service/nested/keep.txt":       "nested",
@@ -32,7 +33,10 @@ func TestBackupData(t *testing.T) {
 		"service/Backup-upper.txt":      "case sensitive",
 		"service/archive.zip":           "excluded by pattern",
 		"service/Cache/data.txt":        "excluded directory",
+		"service/Cache/compose.yml":     "excluded compose directory",
 		"service/Cache/subdir/keep.txt": "excluded nested file",
+		"web/compose.yml":               "web compose",
+		"worker/docker-compose.yml":     "worker compose",
 	} {
 		if err := os.WriteFile(filepath.Join(root, path), []byte(content), 0644); err != nil {
 			t.Fatal(err)
@@ -70,7 +74,7 @@ func TestBackupData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantProgress := "...\n"
+	wantProgress := ".....\n"
 	if string(progress) != wantProgress {
 		t.Errorf("progress = %q, want %q", progress, wantProgress)
 	}
@@ -111,10 +115,15 @@ func TestBackupData(t *testing.T) {
 		"service":                    "",
 		"service/backup-data":        "previously excluded",
 		"service/Backup-upper.txt":   "case sensitive",
+		"service/compose.yml":        "second compose filename in same directory",
 		"service/docker-compose.yml": "service compose",
 		"service/nested":             "",
 		"service/nested/compose.yml": "nested compose",
 		"service/nested/keep.txt":    "nested",
+		"web":                        "",
+		"web/compose.yml":            "web compose",
+		"worker":                     "",
+		"worker/docker-compose.yml":  "worker compose",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("archive contents = %#v, want %#v", got, want)
