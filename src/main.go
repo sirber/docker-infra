@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 )
 
 // Version information. These can be set at build time using -ldflags.
@@ -30,7 +31,31 @@ func printVersion() {
 	fmt.Println(Version)
 }
 
+func relaunchWithSudo(args []string) error {
+	executable, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("locate infra executable: %w", err)
+	}
+
+	cmd := exec.Command("sudo", append([]string{executable}, args...)...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "backup" && os.Geteuid() != 0 {
+		if err := relaunchWithSudo(os.Args[1:]); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				os.Exit(exitErr.ExitCode())
+			}
+			fmt.Fprintf(os.Stderr, "Error relaunching backup with sudo: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	fmt.Println("Docker Self-Hosted Infra")
 	fmt.Printf("Version: ")
 	printVersion()
