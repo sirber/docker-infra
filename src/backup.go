@@ -54,7 +54,8 @@ func backupData(archiveName string, excludes []string) (result error) {
 	defer func() { result = errors.Join(result, tarWriter.Close()) }()
 
 	root := "."
-	return filepath.Walk(root, func(path string, info os.FileInfo, err error) (result error) {
+	progressPrinted := false
+	walkErr := filepath.Walk(root, func(path string, info os.FileInfo, err error) (result error) {
 		if err != nil {
 			if os.IsPermission(err) {
 				return nil // skip files/dirs with no permission
@@ -110,6 +111,14 @@ func backupData(archiveName string, excludes []string) (result error) {
 			}
 		}
 
+		showProgress := false
+		if info.IsDir() {
+			showProgress, err = hasComposeFile(path)
+			if err != nil {
+				return fmt.Errorf("check compose files in %s: %w", path, err)
+			}
+		}
+
 		var file *os.File
 		if info.Mode().IsRegular() {
 			file, err = os.Open(path)
@@ -129,6 +138,10 @@ func backupData(archiveName string, excludes []string) (result error) {
 
 		// Set correct name in archive (relative path)
 		if relPath == "." {
+			if showProgress {
+				fmt.Print(".")
+				progressPrinted = true
+			}
 			return nil // skip root dir entry
 		}
 		hdr.Name = relPath
@@ -144,7 +157,10 @@ func backupData(archiveName string, excludes []string) (result error) {
 		}
 
 		if info.IsDir() {
-			fmt.Printf("Backing up directory: %s\n", relPath)
+			if showProgress {
+				fmt.Print(".")
+				progressPrinted = true
+			}
 		}
 		if file != nil {
 			if _, err := io.Copy(tarWriter, file); err != nil {
@@ -154,4 +170,24 @@ func backupData(archiveName string, excludes []string) (result error) {
 
 		return nil
 	})
+	if progressPrinted {
+		fmt.Println()
+	}
+	return walkErr
+}
+
+func hasComposeFile(dir string) (bool, error) {
+	for _, name := range []string{"docker-compose.yml", "compose.yml"} {
+		info, err := os.Stat(filepath.Join(dir, name))
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return false, err
+		}
+		if info.Mode().IsRegular() {
+			return true, nil
+		}
+	}
+	return false, nil
 }

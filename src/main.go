@@ -45,7 +45,8 @@ func relaunchWithSudo(args []string) error {
 }
 
 func main() {
-	if len(os.Args) >= 2 && os.Args[1] == "backup" && os.Geteuid() != 0 {
+	isBackup := len(os.Args) >= 2 && os.Args[1] == "backup"
+	if isBackup && os.Geteuid() != 0 {
 		if err := relaunchWithSudo(os.Args[1:]); err != nil {
 			if exitErr, ok := err.(*exec.ExitError); ok {
 				os.Exit(exitErr.ExitCode())
@@ -56,10 +57,12 @@ func main() {
 		return
 	}
 
-	fmt.Println("Docker Self-Hosted Infra")
-	fmt.Printf("Version: ")
-	printVersion()
-	fmt.Println()
+	if !isBackup {
+		fmt.Println("Docker Self-Hosted Infra")
+		fmt.Printf("Version: ")
+		printVersion()
+		fmt.Println()
+	}
 
 	if len(os.Args) >= 2 && os.Args[1] == "upgrade" {
 		if err := upgrade(); err != nil {
@@ -88,21 +91,20 @@ func main() {
 		dockerUp()
 	case "start":
 		fmt.Println("Starting infrastructure...")
-		dockerStart()
+		dockerStart(false)
 	case "down":
 		fmt.Println("Stopping infrastructure...")
 		dockerDown()
 	case "stop":
 		fmt.Println("Stopping infrastructure...")
-		dockerStop()
+		dockerStop(false)
 	case "pull":
 		fmt.Println("Pulling latest images...")
 		dockerPull()
 	case "backup":
-		dockerStop()
-		fmt.Println("Backing up data...")
+		dockerStop(true)
 		err := backupData(cfg.ArchiveName, cfg.Exclude)
-		dockerStart()
+		dockerStart(true)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error backing up data: %v\n", err)
 			os.Exit(1)
