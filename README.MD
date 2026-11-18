@@ -25,6 +25,18 @@ an empty file `enabled`.
 
 Then, you are ready to start the infra! With `infra up`.
 
+## Upgrade
+
+Run `infra upgrade` (or `infra ugrade`) to check the latest GitHub release and
+display the installed and available versions. If a newer version is available,
+confirm with `y` or `yes` to download and replace the installed executable, then
+exit. Other answers cancel.
+Development builds (`dev`) can also be replaced with the latest release.
+
+Self-upgrade supports Linux/amd64, does not require `infra.json`, and requires
+write permission to the installation directory. The executable's permissions are
+preserved, and failed downloads leave the existing installation untouched.
+
 ## Best Practices
 
 - Use [bind mount](https://docs.docker.com/engine/storage/bind-mounts/), to be able to backup your data
