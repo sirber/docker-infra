@@ -23,7 +23,7 @@ func showHelp() {
 	fmt.Println("  backup  - Backup data")
 	fmt.Println("  restart - Restart the infrastructure")
 	fmt.Println("  version - Show version information")
-	fmt.Println("  upgrade - Upgrade to the latest GitHub release (alias: ugrade)")
+	fmt.Println("  upgrade - Upgrade to the latest GitHub release")
 }
 
 func printVersion() {
@@ -36,7 +36,7 @@ func main() {
 	printVersion()
 	fmt.Println()
 
-	if len(os.Args) >= 2 && (os.Args[1] == "upgrade" || os.Args[1] == "ugrade") {
+	if len(os.Args) >= 2 && os.Args[1] == "upgrade" {
 		if err := upgrade(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error upgrading: %v\n", err)
 			os.Exit(1)
