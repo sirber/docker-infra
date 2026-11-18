@@ -52,10 +52,13 @@ also configure an `exclude` array of glob patterns, for example:
 
 ```json
 {
-  "archive_name": "backup.tar.gz",
+  "archive_name": "backup.tar.lz4",
   "exclude": ["*.zip", "Cache/"]
 }
 ```
+
+The archive extension selects compression: `.gz` uses gzip and `.lz4` uses
+LZ4. The default archive name remains `backup.tar.gz`.
 
 Patterns without a `/` match path components at any depth; patterns with a `/`
 match the path relative to the infrastructure directory. A trailing `/` limits

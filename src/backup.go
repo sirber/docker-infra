@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/pierrec/lz4/v4"
 )
 
 func backupData(archiveName string, excludes []string) (result error) {
@@ -35,10 +37,15 @@ func backupData(archiveName string, excludes []string) (result error) {
 	}
 	defer func() { result = errors.Join(result, outFile.Close()) }()
 
-	gzWriter := gzip.NewWriter(outFile)
-	defer func() { result = errors.Join(result, gzWriter.Close()) }()
+	var compressedWriter io.WriteCloser
+	if strings.EqualFold(filepath.Ext(archiveName), ".lz4") {
+		compressedWriter = lz4.NewWriter(outFile)
+	} else {
+		compressedWriter = gzip.NewWriter(outFile)
+	}
+	defer func() { result = errors.Join(result, compressedWriter.Close()) }()
 
-	tarWriter := tar.NewWriter(gzWriter)
+	tarWriter := tar.NewWriter(compressedWriter)
 	defer func() { result = errors.Join(result, tarWriter.Close()) }()
 
 	root := "."
