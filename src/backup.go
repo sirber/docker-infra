@@ -31,18 +31,23 @@ func backupData(archiveName string, excludes []string) (result error) {
 		return err
 	}
 
+	var newCompressedWriter func(io.Writer) io.WriteCloser
+	switch strings.ToLower(filepath.Ext(archiveName)) {
+	case ".lz4":
+		newCompressedWriter = func(w io.Writer) io.WriteCloser { return lz4.NewWriter(w) }
+	case ".gz":
+		newCompressedWriter = func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }
+	default:
+		return fmt.Errorf("unsupported backup archive extension %q (expected .gz or .lz4)", filepath.Ext(archiveName))
+	}
+
 	outFile, err := os.Create(archiveName)
 	if err != nil {
 		return fmt.Errorf("create archive: %w", err)
 	}
 	defer func() { result = errors.Join(result, outFile.Close()) }()
 
-	var compressedWriter io.WriteCloser
-	if strings.EqualFold(filepath.Ext(archiveName), ".lz4") {
-		compressedWriter = lz4.NewWriter(outFile)
-	} else {
-		compressedWriter = gzip.NewWriter(outFile)
-	}
+	compressedWriter := newCompressedWriter(outFile)
 	defer func() { result = errors.Join(result, compressedWriter.Close()) }()
 
 	tarWriter := tar.NewWriter(compressedWriter)

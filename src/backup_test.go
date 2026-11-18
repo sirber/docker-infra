@@ -175,3 +175,14 @@ func TestBackupDataInvalidExclude(t *testing.T) {
 		t.Fatalf("expected invalid exclude pattern error, got %v", err)
 	}
 }
+
+func TestBackupDataUnsupportedExtension(t *testing.T) {
+	archiveName := filepath.Join(t.TempDir(), "backup.zip")
+	err := backupData(archiveName, nil)
+	if err == nil || !strings.Contains(err.Error(), "unsupported backup archive extension") {
+		t.Fatalf("expected unsupported archive extension error, got %v", err)
+	}
+	if _, err := os.Stat(archiveName); !os.IsNotExist(err) {
+		t.Fatalf("unsupported archive created a file: stat error = %v", err)
+	}
+}
