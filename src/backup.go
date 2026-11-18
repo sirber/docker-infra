@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"github.com/pierrec/lz4/v4"
 )
 
 func backupData(archiveName string, excludes []string) (result error) {
@@ -29,16 +31,26 @@ func backupData(archiveName string, excludes []string) (result error) {
 		return err
 	}
 
+	var newCompressedWriter func(io.Writer) io.WriteCloser
+	switch strings.ToLower(filepath.Ext(archiveName)) {
+	case ".lz4":
+		newCompressedWriter = func(w io.Writer) io.WriteCloser { return lz4.NewWriter(w) }
+	case ".gz":
+		newCompressedWriter = func(w io.Writer) io.WriteCloser { return gzip.NewWriter(w) }
+	default:
+		return fmt.Errorf("unsupported backup archive extension %q (expected .gz or .lz4)", filepath.Ext(archiveName))
+	}
+
 	outFile, err := os.Create(archiveName)
 	if err != nil {
 		return fmt.Errorf("create archive: %w", err)
 	}
 	defer func() { result = errors.Join(result, outFile.Close()) }()
 
-	gzWriter := gzip.NewWriter(outFile)
-	defer func() { result = errors.Join(result, gzWriter.Close()) }()
+	compressedWriter := newCompressedWriter(outFile)
+	defer func() { result = errors.Join(result, compressedWriter.Close()) }()
 
-	tarWriter := tar.NewWriter(gzWriter)
+	tarWriter := tar.NewWriter(compressedWriter)
 	defer func() { result = errors.Join(result, tarWriter.Close()) }()
 
 	root := "."

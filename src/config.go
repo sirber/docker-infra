@@ -30,7 +30,7 @@ func ensureConfig(path string) (Config, error) {
 }
 
 func createDefaultConfig(path string) error {
-	defaultCfg := Config{ArchiveName: "backup.tar.gz"}
+	defaultCfg := Config{ArchiveName: "backup.tar.lz4"}
 	data, err := json.MarshalIndent(defaultCfg, "", "  ")
 	if err != nil {
 		return err

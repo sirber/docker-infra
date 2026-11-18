@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/pierrec/lz4/v4"
 )
 
 func TestBackupData(t *testing.T) {
@@ -120,9 +122,67 @@ func TestBackupDataCreateError(t *testing.T) {
 	}
 }
 
+func TestBackupDataLZ4(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "keep.txt"), []byte("lz4 backup"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	oldDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(oldDir); err != nil {
+			t.Error(err)
+		}
+	})
+
+	if err := backupData("backup.tar.lz4", nil); err != nil {
+		t.Fatal(err)
+	}
+
+	archive, err := os.Open("backup.tar.lz4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer archive.Close()
+
+	lz4Reader := lz4.NewReader(archive)
+	tr := tar.NewReader(lz4Reader)
+	header, err := tr.Next()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if header.Name != "keep.txt" {
+		t.Fatalf("archive entry = %q, want %q", header.Name, "keep.txt")
+	}
+	data, err := io.ReadAll(tr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "lz4 backup" {
+		t.Errorf("archive contents = %q, want %q", data, "lz4 backup")
+	}
+}
+
 func TestBackupDataInvalidExclude(t *testing.T) {
 	err := backupData("backup.tar.gz", []string{"["})
 	if err == nil || !strings.Contains(err.Error(), "invalid backup exclude pattern") {
 		t.Fatalf("expected invalid exclude pattern error, got %v", err)
+	}
+}
+
+func TestBackupDataUnsupportedExtension(t *testing.T) {
+	archiveName := filepath.Join(t.TempDir(), "backup.zip")
+	err := backupData(archiveName, nil)
+	if err == nil || !strings.Contains(err.Error(), "unsupported backup archive extension") {
+		t.Fatalf("expected unsupported archive extension error, got %v", err)
+	}
+	if _, err := os.Stat(archiveName); !os.IsNotExist(err) {
+		t.Fatalf("unsupported archive created a file: stat error = %v", err)
 	}
 }
