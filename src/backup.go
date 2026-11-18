@@ -7,12 +7,23 @@ import (
 	"fmt"
 	"io"
 	"os"
+	pathpkg "path"
 	"path/filepath"
 	"strings"
 	"syscall"
 )
 
-func backupData(archiveName string) (result error) {
+func backupData(archiveName string, excludes []string) (result error) {
+	for _, pattern := range excludes {
+		pattern = strings.TrimSuffix(pattern, "/")
+		if pattern == "" {
+			return fmt.Errorf("invalid empty backup exclude pattern")
+		}
+		if _, err := pathpkg.Match(pattern, ""); err != nil {
+			return fmt.Errorf("invalid backup exclude pattern %q: %w", pattern, err)
+		}
+	}
+
 	archivePath, err := filepath.Abs(archiveName)
 	if err != nil {
 		return err
@@ -43,8 +54,48 @@ func backupData(archiveName string) (result error) {
 		if err != nil {
 			return err
 		}
-		if pathAbs == archivePath || (!info.IsDir() && strings.HasPrefix(info.Name(), "backup")) {
+		if pathAbs == archivePath {
 			return nil
+		}
+
+		relPath, err := filepath.Rel(".", path)
+		if err != nil {
+			return err
+		}
+		relPath = filepath.ToSlash(relPath)
+		for _, pattern := range excludes {
+			if relPath == "." {
+				break
+			}
+			dirOnly := strings.HasSuffix(pattern, "/")
+			matchPattern := strings.TrimSuffix(pattern, "/")
+			if dirOnly && !info.IsDir() {
+				continue
+			}
+
+			matched := false
+			if strings.Contains(matchPattern, "/") {
+				matched, err = pathpkg.Match(matchPattern, relPath)
+				if err != nil {
+					return fmt.Errorf("invalid backup exclude pattern %q: %w", pattern, err)
+				}
+			} else {
+				for _, component := range strings.Split(relPath, "/") {
+					matched, err = pathpkg.Match(matchPattern, component)
+					if err != nil {
+						return fmt.Errorf("invalid backup exclude pattern %q: %w", pattern, err)
+					}
+					if matched {
+						break
+					}
+				}
+			}
+			if matched {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
 		}
 
 		var file *os.File
@@ -65,10 +116,6 @@ func backupData(archiveName string) (result error) {
 		}
 
 		// Set correct name in archive (relative path)
-		relPath, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
 		if relPath == "." {
 			return nil // skip root dir entry
 		}

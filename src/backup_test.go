@@ -13,18 +13,21 @@ import (
 
 func TestBackupData(t *testing.T) {
 	root := t.TempDir()
-	for _, dir := range []string{"archives", "service/nested", "backup-folder"} {
+	for _, dir := range []string{"archives", "service/nested", "backup-folder", "service/Cache/subdir"} {
 		if err := os.MkdirAll(filepath.Join(root, dir), 0755); err != nil {
 			t.Fatal(err)
 		}
 	}
 	for path, content := range map[string]string{
-		"keep.txt":                 "root",
-		"backup-old.tar.gz":        "old backup",
-		"service/backup-data":      "excluded",
-		"service/nested/keep.txt":  "nested",
-		"backup-folder/keep.txt":   "directory retained",
-		"service/Backup-upper.txt": "case sensitive",
+		"keep.txt":                      "root",
+		"backup-old.tar.gz":             "old backup",
+		"service/backup-data":           "previously excluded",
+		"service/nested/keep.txt":       "nested",
+		"backup-folder/keep.txt":        "directory retained",
+		"service/Backup-upper.txt":      "case sensitive",
+		"service/archive.zip":           "excluded by pattern",
+		"service/Cache/data.txt":        "excluded directory",
+		"service/Cache/subdir/keep.txt": "excluded nested file",
 	} {
 		if err := os.WriteFile(filepath.Join(root, path), []byte(content), 0644); err != nil {
 			t.Fatal(err)
@@ -50,7 +53,7 @@ func TestBackupData(t *testing.T) {
 	}
 	oldStdout := os.Stdout
 	os.Stdout = output
-	err = backupData("archives/custom.tar.gz")
+	err = backupData("archives/custom.tar.gz", []string{"*.zip", "Cache/"})
 	os.Stdout = oldStdout
 	if err != nil {
 		t.Fatal(err)
@@ -96,9 +99,11 @@ func TestBackupData(t *testing.T) {
 	want := map[string]string{
 		"archives":                 "",
 		"backup-folder":            "",
+		"backup-old.tar.gz":        "old backup",
 		"backup-folder/keep.txt":   "directory retained",
 		"keep.txt":                 "root",
 		"service":                  "",
+		"service/backup-data":      "previously excluded",
 		"service/Backup-upper.txt": "case sensitive",
 		"service/nested":           "",
 		"service/nested/keep.txt":  "nested",
@@ -109,8 +114,15 @@ func TestBackupData(t *testing.T) {
 }
 
 func TestBackupDataCreateError(t *testing.T) {
-	err := backupData(filepath.Join(t.TempDir(), "missing", "backup.tar.gz"))
+	err := backupData(filepath.Join(t.TempDir(), "missing", "backup.tar.gz"), nil)
 	if err == nil || !strings.Contains(err.Error(), "create archive") {
 		t.Fatalf("expected archive creation error, got %v", err)
+	}
+}
+
+func TestBackupDataInvalidExclude(t *testing.T) {
+	err := backupData("backup.tar.gz", []string{"["})
+	if err == nil || !strings.Contains(err.Error(), "invalid backup exclude pattern") {
+		t.Fatalf("expected invalid exclude pattern error, got %v", err)
 	}
 }

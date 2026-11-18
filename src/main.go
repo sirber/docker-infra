@@ -76,7 +76,7 @@ func main() {
 	case "backup":
 		dockerStop()
 		fmt.Println("Backing up data...")
-		err := backupData(cfg.ArchiveName)
+		err := backupData(cfg.ArchiveName, cfg.Exclude)
 		dockerStart()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error backing up data: %v\n", err)
