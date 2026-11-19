@@ -43,18 +43,10 @@ func findEnabledDirs(root string, all bool) ([]string, error) {
 	return dirs, err
 }
 
-func runDockerComposeCmdInDirs(dirs []string, quiet bool, args ...string) {
+func runDockerComposeCmdInDirs(dirs []string, args ...string) {
 	for _, dir := range dirs {
 		cmd := exec.Command("docker", append([]string{"compose"}, args...)...)
 		cmd.Dir = dir
-		if quiet {
-			output, err := cmd.CombinedOutput()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error running 'docker compose %v' in %s: %v\n", args, dir, err)
-				os.Stderr.Write(output)
-			}
-			continue
-		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		fmt.Printf("Running 'docker compose %v' in %s\n", args, dir)
@@ -70,7 +62,7 @@ func dockerUp() {
 		fmt.Printf("Error scanning directories: %v\n", err)
 		os.Exit(1)
 	}
-	runDockerComposeCmdInDirs(dirs, false, "up", "-d")
+	runDockerComposeCmdInDirs(dirs, "up", "-d")
 }
 
 func dockerDown() {
@@ -79,7 +71,7 @@ func dockerDown() {
 		fmt.Printf("Error scanning directories: %v\n", err)
 		os.Exit(1)
 	}
-	runDockerComposeCmdInDirs(dirs, false, "down")
+	runDockerComposeCmdInDirs(dirs, "down")
 }
 
 func dockerPull() {
@@ -88,7 +80,7 @@ func dockerPull() {
 		fmt.Printf("Error scanning directories: %v\n", err)
 		os.Exit(1)
 	}
-	runDockerComposeCmdInDirs(dirs, false, "pull")
+	runDockerComposeCmdInDirs(dirs, "pull")
 }
 
 func dockerRestart() {
@@ -96,23 +88,19 @@ func dockerRestart() {
 	dockerUp()
 }
 
-func dockerStart(quiet bool) {
-	dockerStartStop("start", false, quiet)
+func dockerStart() {
+	dockerStartStop("start", false)
 }
 
-func dockerStop(quiet bool) {
-	dockerStartStop("stop", true, quiet)
+func dockerStop() {
+	dockerStartStop("stop", true)
 }
 
-func dockerStartStop(action string, all, quiet bool) {
+func dockerStartStop(action string, all bool) {
 	dirs, err := findEnabledDirs(".", all)
 	if err != nil {
-		output := os.Stdout
-		if quiet {
-			output = os.Stderr
-		}
-		fmt.Fprintf(output, "Error scanning directories: %v\n", err)
+		fmt.Printf("Error scanning directories: %v\n", err)
 		os.Exit(1)
 	}
-	runDockerComposeCmdInDirs(dirs, quiet, action)
+	runDockerComposeCmdInDirs(dirs, action)
 }

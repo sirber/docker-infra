@@ -57,12 +57,10 @@ func main() {
 		return
 	}
 
-	if !isBackup {
-		fmt.Println("Docker Self-Hosted Infra")
-		fmt.Printf("Version: ")
-		printVersion()
-		fmt.Println()
-	}
+	fmt.Println("Docker Self-Hosted Infra")
+	fmt.Printf("Version: ")
+	printVersion()
+	fmt.Println()
 
 	if len(os.Args) >= 2 && os.Args[1] == "upgrade" {
 		if err := upgrade(); err != nil {
@@ -91,20 +89,23 @@ func main() {
 		dockerUp()
 	case "start":
 		fmt.Println("Starting infrastructure...")
-		dockerStart(false)
+		dockerStart()
 	case "down":
 		fmt.Println("Stopping infrastructure...")
 		dockerDown()
 	case "stop":
 		fmt.Println("Stopping infrastructure...")
-		dockerStop(false)
+		dockerStop()
 	case "pull":
 		fmt.Println("Pulling latest images...")
 		dockerPull()
 	case "backup":
-		dockerStop(true)
+		fmt.Println("Stopping infrastructure...")
+		dockerStop()
+		fmt.Printf("Creating backup archive: %s\n", cfg.ArchiveName)
 		err := backupData(cfg.ArchiveName, cfg.Exclude)
-		dockerStart(true)
+		fmt.Println("Starting infrastructure...")
+		dockerStart()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error backing up data: %v\n", err)
 			os.Exit(1)

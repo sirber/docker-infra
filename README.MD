@@ -77,10 +77,12 @@ LZ4. New configurations default to `backup.tar.lz4`.
 Patterns without a `/` match path components at any depth; patterns with a `/`
 match the path relative to the infrastructure directory. A trailing `/` limits
 a pattern to directories, which are skipped along with their contents. The
-archive itself is always excluded. Backup progress prints one dot for each
+archive itself is always excluded. After any `sudo` prompt, backup shows the
+standard version header and announces when it stops services, creates the
+archive, and starts services again. Docker Compose output is streamed as it is
+for other commands. While creating the archive, backup prints one dot for each
 included directory containing `docker-compose.yml` or `compose.yml`, all on one
-line (`.....` for five matching directories). Routine Docker output is hidden
-during backup, but errors are still shown.
+line (`.....` for five matching directories).
 
 To restore, just extract the archive somewhere else (as root) and up it!
 
