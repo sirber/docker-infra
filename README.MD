@@ -7,7 +7,21 @@ the other for `services/`.
 
 # Installation
 
-A binary is automatically compiled by GitHub.
+Install the latest Linux/amd64 release on Debian, Ubuntu, Fedora, or another
+compatible Linux distribution:
+
+```sh
+wget -qO- https://raw.githubusercontent.com/sirber/docker-infra/main/install.sh | bash
+```
+
+The installer requires Bash and wget or curl. It installs `infra` to
+`~/.local/bin` without sudo. If that directory is not on `PATH`, it offers to
+add it to your Bash, Zsh, or sh configuration when a terminal is available.
+Open a new shell or run `export PATH="$HOME/.local/bin:$PATH"` to use it in
+the current shell. For other shells or non-interactive installs, configure
+`PATH` manually.
+
+Alternatively, install the automatically compiled binary manually:
 
 - Download [latest release](https://github.com/sirber/docker-infra/releases/latest)
   - example: `wget -O infra https://github.com/sirber/docker-infra/releases/latest/download/infra`

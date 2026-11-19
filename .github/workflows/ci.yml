@@ -33,3 +33,23 @@ jobs:
         run: go test ./...
       - name: Build
         run: go build -o /dev/null .
+
+  installer:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [debian:12, ubuntu:24.04, fedora:44]
+    container: ${{ matrix.image }}
+    steps:
+      - name: Install test dependencies
+        run: |
+          if command -v apt-get >/dev/null; then
+            apt-get update -qq
+            apt-get install -y -qq bash util-linux ca-certificates
+          else
+            dnf install -y --setopt=install_weak_deps=False bash util-linux util-linux-script ca-certificates
+          fi
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Test installer
+        run: bash tests/install.sh
