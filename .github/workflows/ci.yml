@@ -47,7 +47,7 @@ jobs:
             apt-get update -qq
             apt-get install -y -qq bash util-linux ca-certificates
           else
-            dnf install -y --setopt=install_weak_deps=False bash util-linux ca-certificates
+            dnf install -y --setopt=install_weak_deps=False bash util-linux util-linux-script ca-certificates
           fi
       - name: Checkout code
         uses: actions/checkout@v4
